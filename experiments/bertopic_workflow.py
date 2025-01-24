@@ -1,30 +1,36 @@
+import os
 import bertopic
 import gc
 import torch
 from hdbscan import HDBSCAN
+from sentence_transformers import SentenceTransformer
 from umap import UMAP
 
 
-def test_model(dataset, datasize, min_topic_size, preprocessed, iteration, seed, nr_topics, file_path, embedding_model,
-               top_n_words=15):
+def main():
+    pass
+
+
+def bertopic_workflow(dataset, seed, min_topic_size, num_topics, csv_file_path,
+         bertopic_labels_csv_file_path, save_model=False, model_file_path=''):
     try:
-        print(f"Testing: datasize={datasize}, min_topic_size={min_topic_size}")
+        print(f"Testing: dataset={dataset}, min_top_size={min_topic_size}, num_topics={num_topics}")
 
-        umap_model = UMAP(n_neighbors=15, n_components=5,
-                          min_dist=0.0, metric='cosine', random_state=seed)
 
-        topic_model = bertopic.BERTopic(nr_topics=nr_topics, top_n_words=top_n_words, min_topic_size=min_topic_size,
-                                        umap_model=umap_model, calculate_probabilities=False)
+        embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
+        umap_model = UMAP(n_neighbors=15, n_components=5, min_dist=0.0, metric='cosine', random_state=seed)
+        hdbscan_model = HDBSCAN(min_cluster_size=min_topic_size, metric='euclidean', cluster_selection_method='eom',
+                                prediction_data=True)
+
+        topic_model = bertopic.BERTopic(nr_topics=num_topics, top_n_words=15, umap_model=umap_model, calculate_probabilities=False,
+                                        hdbscan_model=hdbscan_model, embedding_model=embedding_model)
 
         topic_model.fit_transform(dataset)
 
         print("Model done fitting")
 
-        # to get keywords per topic, all we need to do is get_topics() on the topic model
         keywords_representation = {}
         for topic, value in topic_model.get_topics().items():
-
-            # will give topic:keywords
             keywords = []
             for keyword, c_tf_idf in value:
                 keywords.append(keyword)
@@ -33,58 +39,42 @@ def test_model(dataset, datasize, min_topic_size, preprocessed, iteration, seed,
 
         bertopic_labels = topic_model.generate_topic_labels(nr_words=3)
 
-        with open(
-                f"topics_keywords_datasize={datasize}_mintopicsize={min_topic_size}_nrwords15_preprocessed={preprocessed}_iteration{iteration}_seed{seed}_rerun.txt",
-                "w") as file:
+        # Topics with their 15 keywords
+        with open(csv_file_path, "w", encoding='utf-8') as file:
             for topic, keywords in keywords_representation.items():
                 file.write(f"Topic {topic}: \n")
                 file.write(f"Topic Keywords: {keywords} \n")
-                file.write(
-                    "----------------------------------------------------------------------------------------------------------------------------")
+                file.write("----------------------------------------------------------------------------------------------------------------------------")
                 file.write("\n")
 
         # BERTopic labels
-        with open(
-                f"bertopic_labels_datasize={datasize}_mintopicsize={min_topic_size}_nrwords15_preprocessed={preprocessed}_iteration{iteration}_seed{seed}_rerun.txt",
-                "w") as file:
+        with open(bertopic_labels_csv_file_path, "w", encoding='utf-8') as file:
             for label in bertopic_labels:
                 topic = int(label.split('_')[0])
                 file.write(f"\nTopic {topic}: \n")
                 file.write(f"Topic Keywords: {keywords_representation[topic]}\n")
                 file.write(f"BERTopic Generated Label: {label} \n")
-                file.write(
-                    "----------------------------------------------------------------------------------------------------------------------------")
+                file.write("----------------------------------------------------------------------------------------------------------------------------")
                 file.write("\n")
 
-        topic_model.save(file_path, serialization="safetensors", save_ctfidf=True,
+        if save_model:
+            topic_model.save(model_file_path, serialization="safetensors", save_ctfidf=True,
                          save_embedding_model=embedding_model)
 
     except Exception as e:
 
-        print(f"Exception occurred with these params: datasize={datasize}, min_topic_size={min_topic_size} \n\n")
+        print(f"Exception occurred with these params: dataset={dataset}, min_top_size={min_topic_size}, num_topics={num_topics} \n\n")
         print(f"Exception: {e}")
 
     else:
-        print(f"Successful run: datasize={datasize}, min_topic_size={min_topic_size} \n\n")
+        print(f"Successful run: dataset={dataset}, min_top_size={min_topic_size}, num_topics={num_topics} \n\n")
 
     finally:
         del topic_model
+        del hdbscan_model
+        del umap_model
+        del dataset
         gc.collect()
 
-
-def visualize_topics(model_path):
-    pass
-
-
-def visualize_documents(model_path):
-    pass
-
-
-def get_word_weights(model_path):
-    pass
-
-
 if __name__ == "__main__":
-    print(torch.cuda.is_available())
-    embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
-    dataset_filenames = []
+    main()

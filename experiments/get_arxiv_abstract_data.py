@@ -5,31 +5,12 @@ from nltk.corpus import stopwords
 
 
 def get_text(file_path):
-    """
-    This dataset was downloaded from kaggle: https://www.kaggle.com/datasets/Cornell-University/arxiv/data
-
-    :param file_path:
-    :param seed:
-    :param chunk_size:
-    :param fraction_to_sample:
-    :return:
-    """
     data = pd.read_json(file_path, lines=True)
 
     return data['abstract'].to_list()
 
 
 def get_preprocessed_data(file_path, remove_stop_words=True, save_dataset=False):
-    """
-    Returns cleaned arxiv data
-
-    :param remove_stop_words:
-    :param fraction_to_sample:
-    :param chunk_size:
-    :param seed:
-    :param file_path:
-    :return:
-    """
 
     data = get_text(file_path)
     clean_data = [preprocess_arxiv_data(t, remove_stop_words) for t in data]
@@ -48,14 +29,6 @@ def get_preprocessed_data_from_csv(file_path):
 
 
 def preprocess_arxiv_data(text, remove_stop_words):
-    """
-    Pass in text abstract to preprocess it
-
-    :param remove_stop_words: Boolean flag to remove stop words.
-    :param text: The text to preprocess.
-    :return: The preprocessed text.
-    """
-
     stop_words = set(stopwords.words('english'))
 
     # Removes new lines and tabs

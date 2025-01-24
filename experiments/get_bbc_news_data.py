@@ -49,15 +49,10 @@ def get_preprocessed_data_from_csv(file_path):
 
 
 def preprocess_doc(text, remove_stop_words):
-    stop_words = set(stopwords.words('english'))
 
-    # add a period to the header
+    # add a period to the header - do before preprocessing
     first_newline_index = text.find('\n')
     text = text[:first_newline_index] + '.' + text[first_newline_index:]
-
-    # Removes new lines and tabs
-    new_text = text.replace("\n", " ")
-    new_text = new_text.replace("\t", " ")
 
     # removes all email addresses
     new_text = re.sub(r'\b[\w\.-]+@[\w\.-]+\b', '', new_text)
@@ -73,13 +68,6 @@ def preprocess_doc(text, remove_stop_words):
 
     # removes empty parentheses
     new_text = re.sub(r'\(\s*\)', '', new_text)
-
-    # convert to lowercase
-    new_text = new_text.lower()
-
-    # optionally remove stop words
-    if remove_stop_words:
-        new_text = " ".join([word for word in new_text.split() if word not in stop_words])
 
     # strip any extra whitespace
     new_text = " ".join(new_text.split())
