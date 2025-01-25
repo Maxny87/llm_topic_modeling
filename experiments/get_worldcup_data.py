@@ -5,7 +5,7 @@ import re
 from nltk.corpus import stopwords
 
 
-def get_text(seed, directory='D:\\topic_modeling_research\\data\\worldcup_data', n=None):
+def load_csv_files(seed, directory='D:\\topic_modeling_research\\data\\worldcup_data', n=None):
     """
     This is our own datasets collected from twitter using the tweepy library.
 

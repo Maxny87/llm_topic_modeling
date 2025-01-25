@@ -5,12 +5,26 @@ This repository contains supplementary materials for our research paper **"Empow
 
 ## Datasets
 
-We used a privately gathered dataset, **the WorldCup2022 Hashtag Tweets dataset**, along with the following publicly available datasets:
+We used a privately gathered dataset, **the WorldCup2022 Hashtag Tweets dataset**, along with the 4 publicly available datasets. Below are the links to access them:
 - [BBC News Dataset](<http://mlg.ucd.ie/datasets/bbc.html>)
 - [arXiv Abstracts Dataset](<https://www.kaggle.com/datasets/spsayakpaul/arxiv-paper-abstracts>)
 - [Amazon Reviews Dataset](<https://amazon-reviews-2023.github.io/>)
-- [20 Newsgroups Dataset](<https://scikit-learn.org/0.19/datasets/twenty_newsgroups.html>)
-- [WorldCup2022 Hashtag Tweets](<INSERT LINK HERE>)
+- [Newsgroups20 Dataset](<https://scikit-learn.org/0.19/datasets/twenty_newsgroups.html>)
+- [WorldCup2022 Hashtag Tweets](<https://drive.google.com/drive/folders/1VpltHjeGqNsM_QcnP7Q0D0qtiRYuzJVB?usp=sharing>)
+
+### Download Links to Preprocessed Datasets
+
+The following links provide direct access to the preprocessed datasets used in our study:
+- [Preprocessed BBC News Dataset](<https://drive.google.com/uc?export=download&id=1hWhzysr0wLoCU0Nz3_ug4Wusgw5vneWx>)
+- [Preprocessed arXiv Abstracts Dataset](<https://drive.google.com/uc?export=download&id=16FzA_ZVCZhhybrUBqlsBPRTvGhRO_6T9>)
+- [Preprocessed Amazon Reviews Dataset](<https://drive.google.com/uc?export=download&id=1ZUFJ2RUCfwcMIja31wI8jgwRGoHrojOZ>)
+- [Preprocessed Newsgroups20 Dataset](<https://drive.google.com/uc?export=download&id=1YTFILEDc16FxO7NpXjk077E0KzRxiLqf>)
+- [Preprocessed WorldCup2022 Hashtag Tweets](<https://drive.google.com/uc?export=download&id=1LBnYrMRdWF5e4Y0QcS-2gSOaw3VK1PsJ>)
+
+
+## Experiment Files
+
+The repository includes all necessary scripts and files used to implement the workflow described in the methodology section of the paper. Each dataset has a dedicated preprocessing script, and the BERTopic workflow script is configured to automatically download and organize the data into the `downloads/` folder for streamlined processing.
 
 ## Appendix
 
