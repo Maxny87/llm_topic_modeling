@@ -3,8 +3,10 @@ import torch
 from openai import OpenAI
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-device = torch.device("cuda")
+device = torch.device("cuda") # for GPU
 
+
+# Topics and keywords from our paper are below
 bbc_news_topics = {
     'topic 0': ['said', 'mr', 'would', 'government', 'labour', 'us', 'also', 'year', 'election', 'new', 'blair',
                 'people', 'minister', 'party', 'could'],
@@ -223,6 +225,7 @@ worldcup_tweets_topics = {
                  'thursdayvibes']
 }
 
+# dataset descriptions are below for each model
 bbc_news_description = 'The dataset used comprised of 2,225 bbc news articles from the time of 2004-2005. The articles cover across five news categories: business, entertainment, politics, sport, and tech.'
 
 arxiv_description = 'This dataset comprises 2,521,247 abstracts of scientific articles from the arXiv repository, summarizing research across disciplines such as physics, computer science, mathematics, statistics, electrical engineering, quantitative biology, and economics. The content is highly technical and research-focused, providing concise summaries of complex studies.'
@@ -240,23 +243,35 @@ topic_dicts = [("bbc_news", bbc_news_topics, bbc_news_description),
                ("worldcup_tweets", worldcup_tweets_topics, worldcup_description)]
 
 def llm_labeling(user_message, model_name, model=None, tokenizer=None, system_message=None, openai_client=None):
+    """
+    This function implements the labeling workflow described in: "Empowering Topic Modeling with Large Language Models (LLMs): A Comparative Study on Labeling Efficiency and Accuracy."
+
+    params:
+        user_message: the message that describes the message to the LLM
+        model_name: the name of the model (used for our purposes and the 3 models used in the paper)
+        model: the LLM model object. If using GPT, no need to pass
+        tokenizer: the tokenizer used to tokenize the message
+        system_message: the message that describes the message to the system - can leave empty if model does not take one
+        openai_client: client to use for openai models
+    """
     llm_generated_labels = {}
 
-    for topic_name, topic, dataset_description in topic_dicts:
-        llm_generated_labels[topic_name] = {}
+    for dataset_name, topic, dataset_description in topic_dicts: # tuple of dataset name, dataset topics and keywords, and then the dataset description
+        llm_generated_labels[dataset_name] = {}
         for topic_num, topic_keywords in topic.items():
 
+            # format the messages with the system and user message
             formatted_system_message = system_message.format(dataset_description=dataset_description)
             formatted_user_message = user_message.format(topic_keywords=', '.join(topic_keywords))
 
-            if model_name == 'llama3.1-8b-instruct' or model_name == 'llama3.2-3b-instruct':
+            if model_name == 'llama_3_1_8b_instruct' or model_name == 'llama_3_2_3b_instruct':
                 prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     
     {formatted_system_message}<|eot_id|>
     <|start_header_id|>user<|end_header_id|>
     
     {formatted_user_message}<|eot_id|>
-    <|start_header_id|>assistant<|end_header_id|>"""
+    <|start_header_id|>assistant<|end_header_id|>""" # prompt with llama formatting
 
                 input_ids = tokenizer(prompt, return_tensors="pt").to("cuda")
 
@@ -268,47 +283,57 @@ def llm_labeling(user_message, model_name, model=None, tokenizer=None, system_me
                 assistant_index = text.find("assistant")
                 if assistant_index != -1:
                     text = text[assistant_index + len("Assistant:"):].strip()
+                else:
+                    text = "No valid label generated"
 
-                llm_generated_labels[topic_name][topic_num] = text
+                llm_generated_labels[dataset_name][topic_num] = text # adding label to results dictionary
 
             elif model_name == 'gpt-4o':
 
-                output = openai_client.chat.completions.create(
+                output = openai_client.chat.completions.create( # using openai api
                     model="gpt-4o",
                     messages=[
                         {"role": "system", "content": formatted_system_message},
                         {"role": "user", "content": formatted_user_message}
                     ]).choices[0].message.content
 
-                llm_generated_labels[topic_name][topic_num] = output
+                llm_generated_labels[dataset_name][topic_num] = output # adding label to results dictionary
 
-    df = pd.DataFrame([
+    df = pd.DataFrame([ # formatting dataframe to save to csv
         {"Dataset": dataset, "Topic": topic, "Label": label}
         for dataset, topics in llm_generated_labels.items()
         for topic, label in topics.items()
     ])
 
-    df.to_csv(f'./results/{model_name}_labeling_results.csv', index=False)
+    df.to_csv(f'{model_name}_labeling_results.csv', index=False)
+
+    print("success for model")
 
 def test():
+    """
+    This is a tester function using the LLM labeling workflow function and using the same models, data, and system/user messages as the paper
+    """
     system_message = "You are an expert topic modeler. You are tasked with generating a topic label that is both clear and contextually relevant, accurately reflecting the theme of a topic based on its keywords. {dataset_description} Your label should succinctly capture the essence of the topic, considering the broader context of the dataset while remaining focused and precise. The label should be clear, concise (not too long), and descriptive, encapsulating the core subject of the topic in a way that is easily understood. "
     user_message = "The keywords for this topic are: {topic_keywords}. Provide a label that best captures the theme of the topic suggested by these keywords. Provide one label only with no additional text."
 
-    llama3_1_8b_token = ''
+    llama3_1_8b_token = '' # need to provide own llama token from hugging face for llama 3.1 8b instruct
     tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct", token=llama3_1_8b_token)
     model = AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct", token=llama3_1_8b_token).to('cuda')
     llm_labeling(user_message, 'llama_3_1_8b_instruct', model, tokenizer, system_message)
     del model, tokenizer
+    torch.cuda.empty_cache()
 
-    llama3_2_3b_token = ''
-    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-3B-Instruct", token=llama3_2_3b_token)
+    llama3_2_3b_token = '' # need to provide own llama token from hugging face for llama 3.3 3b instruct
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-3B-Instruct", token=llama3_1_8b_token)
     model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-3B-Instruct", token=llama3_2_3b_token).to('cuda')
     llm_labeling(user_message, 'llama_3_2_3b_instruct', model, tokenizer, system_message)
     del model, tokenizer
+    torch.cuda.empty_cache()
 
-    client = OpenAI(api_key='')
+    client = OpenAI(api_key='') # need to provide own api key for openai
     llm_labeling(user_message, 'gpt-4o', system_message=system_message, openai_client=client)
     del client
+    torch.cuda.empty_cache()
 
 if __name__ == '__main__':
     test()
